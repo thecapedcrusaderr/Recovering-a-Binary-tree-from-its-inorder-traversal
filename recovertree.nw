@@ -1,0 +1,143 @@
+\documentclass{article}
+\usepackage[paperwidth=8.5in,paperheight=11in]{geometry}
+\usepackage{noweb}
+\title{Assignment2 - Weaving through Entangled Webs in the wood}
+\author{2019MCS2569}
+\begin{document}
+\maketitle
+
+
+
+\section*{Recovery from Inorder Traversals}
+
+\section*{Introduction}
+\par This file contains the solution to the problem of reconstructing the tree from its inorder traversal only. Other traversal algorithm like preorder and   postorder are not present. So, with the help of inorder traversal only or with some little extra information if required we are going to reconstruct the original tree.
+
+\section*{Signature}
+<<module-signature-bintree>>=
+exception Empty_bintree;
+exception EmptyList;
+signature BINTREE = 
+sig
+    datatype 'a bintree =   Empty |
+                            Node of 'a * 'a bintree * 'a bintree
+    val inorder : 'a bintree -> ('a * int) list
+    val inorderInverse : (int * int) list -> int bintree
+
+end (*sig*)
+@
+
+(* Inorder function to generate inorder traversal of the tree *)
+\section*{Inorder Function}
+\par This function will take a binary tree as an input and yields the inorder traversal of the tree with nodes containing value and the level on which the node is present, root will be present at level 0 and then its left and right child will be present at the next level i.e. 1 . This thing will be followed for every node. Only inorder traversal couldn't suffice for the reconstruction of the original tree. This is because we were not able to correctly identify the leaf nodes and parents children relationship as well. So while traversing the tree we are storing the level of each node alongside its value.
+
+<<inorder>>=
+    fun inorder Empty = raise Empty_bintree
+     |  inorder (Node (x, left, right))
+                  = let fun ino (Empty, Llist,i) = Llist
+                         |  ino (Node (N, LST, RST), Llist, i) =
+               			 let val Mlist = ino (RST, Llist, i+1)
+                                     val Nlist = ino (LST, (N,i)::Mlist, i+1)
+                                 in Nlist
+                                 end;
+                    in  ino(Node (x, left, right),[],0)
+                    end; 
+@
+
+\section*{Different test cases}
+
+<<Testcase1>>=
+val tc1 = Empty;
+@
+<<Testcase2>>=
+val tc2 = Node(1, Empty, Node(2, Empty, Node(3, Empty, Empty)));
+@
+<<Testcase3>>=
+val tc3 = Node(1, Node(2,Node(3,Empty,Empty),Empty),Empty);
+@
+<<Testcase4>>=
+val tc4 = Node(1, Empty, (Node(2, Node(3, Empty, Empty), Empty)));
+@
+<<Testcase5>>=
+val tc5 = Node(1, Node(2,Empty,Node(3,Empty,Empty)), Empty);
+@
+<<Testcase6>>=
+val tc6 = Node(1, Node(2,Node(4,Empty,Empty),Node(5,Empty,Empty)), 
+          Node(3,Node(6,Empty,Empty),Node(7,Empty,Empty)));
+@
+<<Testcase7>>=
+val t7 = Node (7, Empty, Empty);
+val t6 = Node (6, t7, Empty);
+val t5 = Node (5, Empty, Empty);
+val t4 = Node (4, Empty, Empty);
+val t3 = Node (3,t5,t6);
+val t2 = Node (2, Empty, t4);
+val t1 = Node (1,t2,t3);
+@
+
+\section*{inorderInverse Function}
+\par This function takes the output of the inorder function and reconstruct the original tree with the help of the inorder traversal output and the level of each node. With the help of levels we can identify where the nodes are present, through this the problem we were getting that it wasn't able to identify the root node is resolved. Since this is inorder traversal all the elements present to the left  to some node in tree would be present to the left of that element in the traversal also. Through this we can partition the traversal for every element and all the elements present left to that node would come to left and right ones would come to right and we'll insert that node to its required position as it was present in the tree, if some partition contains only a single element with nothing to left and right then it is simply leaf node and our problem is resolved. Through this we'll get out initial original tree.
+
+<<inorderInverse>>=
+    local  fun inorderInverse1([],k) = Empty
+           |  inorderInverse1(l as h::t, k) 
+                  = let fun  split ([], r) = raise EmptyList
+                         |   split (I, r) 
+                               =  let fun splitIter ([], r, firsts)
+                       	                     = (r, rev firsts, [])
+                                       |  splitIter ((x,y)::t, r, firsts) 
+	        	                     = if  (y = r) then (x, rev firsts, t)
+                                               else splitIter (t, r, (x,y)::firsts)
+                                  in  splitIter (I, r, [])
+                                  end;
+	                val (a,b,c) = split(l,k)
+                   in  Node(a, inorderInverse1(b,k+1), inorderInverse1(c,k+1))
+                   end;
+   in  fun inorderInverse(l) =  inorderInverse1(l,0)
+   end;
+@
+
+\section*{Time Complexity}
+\par Time complexity of this algorithm is $n^{2}$
+
+\section*{Structure}
+\par This structure contains datatype binary tree and the two function we made i.e inorder and inorderInverse.
+
+<<module-structure-bintree>>=
+structure Bintree : BINTREE =
+struct
+   datatype 'a bintree =   Empty |
+                           Node of 'a * 'a bintree * 'a bintree
+   <<inorder>>
+   <<inorderInverse>>
+end (* struct *)
+@
+
+\section*{Complete module}
+\par 
+<<2019mcs2569-module-bintree-complete>>=
+
+        <<module-signature-bintree>>
+        <<module-structure-bintree>>
+ open Bintree;
+ <<Testcase1>>
+ <<Testcase2>>
+ <<Testcase3>>
+ <<Testcase4>>
+ <<Testcase5>>
+ <<Testcase6>>
+ <<Testcase7>>
+
+@
+
+\end{document}
+
+
+ 
+
+
+
+
+
+
+
